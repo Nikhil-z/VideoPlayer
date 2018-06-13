@@ -3,11 +3,11 @@ package com.konka.videoplayer.engine.views;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.konka.videoplayer.R;
 import com.konka.videoplayer.engine.interfaces.PlayStateListenerAdapter;
@@ -38,6 +38,13 @@ public class KKVideoStandardView extends KKVideoBaseView {
         loadingView = findViewById(R.id.loading);
         mReplayText = findViewById(R.id.replay_text);
         retryLayout = findViewById(R.id.retry_layout);
+        View back = findViewById(R.id.back);
+        back.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                backPress();
+            }
+        });
         getPlayStateManager().addPlayStateListener(new StateListener());
     }
 
@@ -52,24 +59,8 @@ public class KKVideoStandardView extends KKVideoBaseView {
     }
 
     @Override
-    public boolean onTouch(View v, MotionEvent event) {
-        return false;
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
     protected void setProgressAndText(int progress, long position, long duration) {
         super.setProgressAndText(progress, position, duration);
-        Log.d("chj", "setProgressAndText");
         if (progress != 0) bottomProgressBar.setProgress(progress);
     }
 
@@ -96,20 +87,32 @@ public class KKVideoStandardView extends KKVideoBaseView {
 
         @Override
         public void onStatePause() {
-            startButton.setImageResource(R.drawable.jz_click_pause_selector);
-            startButton.setVisibility(VISIBLE);
-        }
-
-        @Override
-        public void onStateReset() {
+            Log.d("chj", "onStatePause");
+            Toast.makeText(getContext(),"onStatePause",Toast.LENGTH_SHORT).show();
             startButton.setImageResource(R.drawable.jz_click_play_selector);
             startButton.setVisibility(VISIBLE);
         }
 
         @Override
+        public void onStateReset() {
+            Log.d("chj", "onStateReset");
+            startButton.setVisibility(VISIBLE);
+            startButton.setImageResource(R.drawable.jz_click_play_selector);
+        }
+
+        @Override
         public void onStateAutoComplete() {
+            Log.d("chj", "onStateAutoComplete");
             startButton.setImageResource(R.drawable.jz_click_replay_selector);
             startButton.setVisibility(VISIBLE);
+        }
+
+        @Override
+        public void onStatePlaying() {
+            Log.d("chj", "onStatePlaying");
+            Toast.makeText(getContext(), "onStatePlaying", Toast.LENGTH_SHORT).show();
+            startButton.setImageResource(R.drawable.jz_click_pause_selector);
+            startButton.setVisibility(INVISIBLE);
         }
     }
 }

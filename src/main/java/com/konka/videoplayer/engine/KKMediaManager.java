@@ -1,5 +1,6 @@
 package com.konka.videoplayer.engine;
 
+import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -7,6 +8,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.ViewGroup;
 
 import com.konka.videoplayer.engine.interfaces.KKMediaInterface;
 import com.konka.videoplayer.engine.views.KKResizeTextureView;
@@ -40,7 +42,7 @@ public class KKMediaManager implements TextureView.SurfaceTextureListener {
         mMediaHandler = new MediaHandler(mMediaHandlerThread.getLooper());
         mainThreadHandler = new Handler();
         if (kkMediaInterface == null)
-            kkMediaInterface = new KKMediaImpl();
+            kkMediaInterface = new KKMediaIjkplayer();
     }
 
     static class SingleTon {
@@ -110,7 +112,14 @@ public class KKMediaManager implements TextureView.SurfaceTextureListener {
         mMediaHandler.sendMessage(msg);
     }
 
-    //列表滑动时，视频textTrueView加载后都会触发该方法，这时候需要重新初始化mediaplayer
+    public void initTextureView(Context context) {
+        savedSurfaceTexture = null;
+        if (textureView != null && textureView.getParent() != null) {
+            ((ViewGroup) textureView.getParent()).removeView(textureView);
+        }
+        textureView = new KKResizeTextureView(context);
+        textureView.setSurfaceTextureListener(this);
+    }
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {

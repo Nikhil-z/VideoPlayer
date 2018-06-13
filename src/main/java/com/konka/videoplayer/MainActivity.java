@@ -2,11 +2,11 @@ package com.konka.videoplayer;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.KeyEvent;
 import android.view.View;
 
 import com.konka.videoplayer.engine.views.KKVideoBaseView;
 import com.konka.videoplayer.engine.views.KKVideoStandardView;
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,4 +23,10 @@ public class MainActivity extends AppCompatActivity {
     public void onClick(View view) {
         kkVideoStandardView.startVideo();
     }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        return super.dispatchKeyEvent(event);
+    }
 }
+   

@@ -8,6 +8,8 @@ public interface PlayStateListener {
 
     void onStatePrepared();
 
+    void onStatePlaying();
+
     void onStatePause();
 
     void onStateError(int what, int extra);

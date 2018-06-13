@@ -13,6 +13,11 @@ public class PlayStateListenerAdapter implements PlayStateListener {
     }
 
     @Override
+    public void onStatePlaying() {
+
+    }
+
+    @Override
     public void onStatePause() {
 
     }

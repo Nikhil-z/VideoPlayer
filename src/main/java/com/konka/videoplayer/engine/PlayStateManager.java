@@ -14,40 +14,48 @@ import java.util.List;
 public class PlayStateManager implements PlayStateListener {
 
     private static final String TAG = "PlayStateManager";
-    public static final int CURRENT_STATE_NORMAL = 0;
-    public static final int CURRENT_STATE_PREPARING = 1;
-    public static final int CURRENT_STATE_PAUSE = 5;
-    public static final int CURRENT_STATE_AUTO_COMPLETE = 6;
-    public static final int CURRENT_STATE_ERROR = 7;
+//    public static final int CURRENT_STATE_NORMAL = 0;
+//    public static final int CURRENT_STATE_PREPARING = 1;
+//    public static final int CURRENT_STATE_PLAYING = 2;
+//    public static final int CURRENT_STATE_PAUSE = 5;
+//    public static final int CURRENT_STATE_AUTO_COMPLETE = 6;
+//    public static final int CURRENT_STATE_ERROR = 7;
 
-    private int mCurrentState = -1;
+    private int mCurrentState = PlayState.CURRENT_STATE_NORMAL;
     private List<PlayStateListener> mListeners = new ArrayList<>();
 
     public int getCurrentState() {
         return mCurrentState;
     }
 
-    public void setCurrentState(int state) {
+    public void setCurrentState(@PlayState int state) {
         this.mCurrentState = state;
         onStateChange(state);
     }
 
     public void resetState() {
-        mCurrentState = CURRENT_STATE_NORMAL;
+        mCurrentState = PlayState.CURRENT_STATE_NORMAL;
         onStateChange(mCurrentState);
     }
 
     @Override
     public void onStatePrepared() {
         Log.i(TAG, "onStatePrepared " + " [" + this.hashCode() + "] ");
-        mCurrentState = CURRENT_STATE_PREPARING;
+        mCurrentState = PlayState.CURRENT_STATE_PREPARING;
+        onStateChange(mCurrentState);
+        onStatePlaying();
+    }
+
+    @Override
+    public void onStatePlaying() {
+        mCurrentState = PlayState.CURRENT_STATE_PLAYING;
         onStateChange(mCurrentState);
     }
 
     @Override
     public void onStatePause() {
         Log.i(TAG, "onStatePause " + " [" + this.hashCode() + "] ");
-        mCurrentState = CURRENT_STATE_PAUSE;
+        mCurrentState = PlayState.CURRENT_STATE_PAUSE;
         onStateChange(mCurrentState);
     }
 
@@ -55,7 +63,7 @@ public class PlayStateManager implements PlayStateListener {
     public void onStateError(int what, int extra) {
         Log.e(TAG, "onError " + what + " - " + extra + " [" + this.hashCode() + "] ");
         if (what != 38 && extra != -38 && what != -38 && extra != 38 && extra != -19) {
-            mCurrentState = CURRENT_STATE_ERROR;
+            mCurrentState = PlayState.CURRENT_STATE_ERROR;
             onStateChange(mCurrentState);
         }
     }
@@ -68,13 +76,13 @@ public class PlayStateManager implements PlayStateListener {
     @Override
     public void onStateAutoComplete() {
         Log.i(TAG, "onStateAutoComplete " + " [" + this.hashCode() + "] ");
-        mCurrentState = CURRENT_STATE_AUTO_COMPLETE;
+        mCurrentState = PlayState.CURRENT_STATE_AUTO_COMPLETE;
         onStateChange(mCurrentState);
     }
 
     @Override
     public void onStateReset() {
-        mCurrentState = CURRENT_STATE_NORMAL;
+        mCurrentState = PlayState.CURRENT_STATE_NORMAL;
         onStateChange(mCurrentState);
     }
 
@@ -83,44 +91,47 @@ public class PlayStateManager implements PlayStateListener {
             mListeners.add(playStateListener);
     }
 
-    private void onStateChange(int state) {
+    private void onStateChange(@PlayState int state) {
         for (PlayStateListener listener : mListeners) {
             switch (state) {
-                case CURRENT_STATE_NORMAL:
+                case PlayState.CURRENT_STATE_NORMAL:
                     listener.onStateReset();
                     break;
-                case CURRENT_STATE_PREPARING:
+                case PlayState.CURRENT_STATE_PREPARING:
                     listener.onStatePrepared();
                     break;
-                case CURRENT_STATE_PAUSE:
+                case PlayState.CURRENT_STATE_PLAYING:
+                    listener.onStatePlaying();
+                    break;
+                case PlayState.CURRENT_STATE_PAUSE:
                     listener.onStatePause();
                     break;
-                case CURRENT_STATE_AUTO_COMPLETE:
+                case PlayState.CURRENT_STATE_AUTO_COMPLETE:
                     listener.onStateAutoComplete();
                     break;
-                case CURRENT_STATE_ERROR:
+                case PlayState.CURRENT_STATE_ERROR:
                     listener.onStateError();
             }
         }
     }
 
     public boolean isPlaying() {
-        return mCurrentState == CURRENT_STATE_PREPARING;
+        return mCurrentState == PlayState.CURRENT_STATE_PLAYING;
     }
 
     public boolean isPause() {
-        return mCurrentState == CURRENT_STATE_PAUSE;
+        return mCurrentState == PlayState.CURRENT_STATE_PAUSE;
     }
 
     public boolean isError() {
-        return mCurrentState == CURRENT_STATE_ERROR;
+        return mCurrentState == PlayState.CURRENT_STATE_ERROR;
     }
 
     public boolean isNomal() {
-        return mCurrentState == CURRENT_STATE_NORMAL;
+        return mCurrentState == PlayState.CURRENT_STATE_NORMAL;
     }
 
     public boolean isAutoComplete() {
-        return mCurrentState == CURRENT_STATE_AUTO_COMPLETE;
+        return mCurrentState == PlayState.CURRENT_STATE_AUTO_COMPLETE;
     }
 }
