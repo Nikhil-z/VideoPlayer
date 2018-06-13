@@ -107,6 +107,10 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     protected ProgressTimerTask mProgressTimerTask;
     protected boolean mTouchingProgressBar;
 
+    private UiController mUiController;
+
+    protected abstract UiController createUiController();
+
     public KKVideoBaseView(Context context) {
         super(context);
         init(context);
@@ -222,7 +226,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         }
     }
 
-
     protected void init(Context context) {
         View.inflate(context, getLayoutId(), this);
         startButton = findViewById(R.id.start);
@@ -236,7 +239,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
 
         startButton.setOnClickListener(this);
         progressBar.setOnSeekBarChangeListener(this);
-        progressBar.setFocusableInTouchMode(true);
         ((CustomSeekBar) progressBar).setOnKeySeekBarChangeListener(new CustomSeekBar.OnKeySeekBarChangeListener() {
             private boolean isTracking;
 
@@ -259,8 +261,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
                 progressBar.setNextFocusRightId(View.NO_ID);
             }
         });
-        bottomContainer.setOnClickListener(this);
-        textureViewContainer.setOnClickListener(this);
         fullScreenBtn.setOnClickListener(this);
 
         mScreenWidth = getContext().getResources().getDisplayMetrics().widthPixels;
@@ -269,6 +269,8 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         playStateManager = new PlayStateManager();
         playStateManager.addPlayStateListener(playStateListenerAdapter);
         fullScreenFloatViewHelper = new FullScreenFloatViewHelper(context);
+//        mUiController = createUiController();
+//        mUiController.attachToPlayView(this);
         try {
             if (isCurrentPlay()) {
                 NORMAL_ORIENTATION = ((AppCompatActivity) context).getRequestedOrientation();
@@ -490,11 +492,13 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
 
     void addTextureView() {
         Log.d(TAG, "addTextureView [" + this.hashCode() + "] ");
-        LayoutParams layoutParams =
-                new LayoutParams(
+        FrameLayout.LayoutParams layoutParams =
+                new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         Gravity.CENTER);
+//        LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,);
+//        layoutParams.addRule(CENTER_IN_PARENT);
         textureViewContainer.addView(KKMediaManager.textureView, layoutParams);
     }
 
@@ -552,7 +556,7 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     }
 
     protected void setProgressAndText(int progress, long position, long duration) {
-//        Log.d(TAG, "setProgressAndText: progress=" + progress + " position=" + position + " duration=" + duration);
+//        Log.d(TAG, "updateProgressAndText: progress=" + progress + " position=" + position + " duration=" + duration);
         if (!mTouchingProgressBar) {
             if (progress != 0) progressBar.setProgress(progress);
         }

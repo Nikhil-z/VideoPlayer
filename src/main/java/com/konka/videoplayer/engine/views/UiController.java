@@ -5,19 +5,23 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.RelativeLayout;
 
+import com.konka.videoplayer.engine.KKMediaManager;
 import com.konka.videoplayer.engine.PlayStateManager;
+import com.konka.videoplayer.engine.interfaces.PlayStateListener;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by HwanJ.Choi on 2018-6-12.
  */
 
-public abstract class UiController extends RelativeLayout {
+public abstract class UiController extends RelativeLayout implements PlayStateListener {
 
-    private PlayStateManager mPlayStateManager;
-
-    public void setPlayStateManager(PlayStateManager mPlayStateManager) {
-        this.mPlayStateManager = mPlayStateManager;
-    }
+    protected PlayStateManager playStateManager;
+    protected static Timer UPDATE_PROGRESS_TIMER;
+    protected ProgressTimerTask progressTimerTask;
+    protected KKVideoBaseView kkVideoBaseView;
 
     public UiController(Context context) {
         this(context, null, 0);
@@ -36,7 +40,118 @@ public abstract class UiController extends RelativeLayout {
         View.inflate(getContext(), getLayout(), this);
     }
 
+    public void attachToPlayView(KKVideoBaseView videoBaseView) {
+        kkVideoBaseView = videoBaseView;
+        videoBaseView.getPlayStateManager().addPlayStateListener(this);
+
+    }
+
     protected abstract int getLayout();
 
-    public abstract void showBuffer();
+    public abstract void showBuffer(boolean show);
+
+    public abstract void showBottomPanel(boolean show);
+
+    public abstract void updateProgressAndText(int progress, long position, long duration);
+
+    public abstract void resetProgressAndTime();
+
+    public void onBufferingProgress(int progress) {
+    }
+
+    @Override
+    public void onStateReset() {
+        cancelProgressTimer();
+    }
+
+    @Override
+    public void onStatePrepared() {
+        resetProgressAndTime();
+        startProgressTimer();
+    }
+
+    @Override
+    public void onStatePause() {
+        startProgressTimer();
+    }
+
+    @Override
+    public void onStatePlaying() {
+        startProgressTimer();
+    }
+
+    @Override
+    public void onStateError() {
+        cancelProgressTimer();
+    }
+
+    @Override
+    public void onStateError(int what, int extra) {
+
+    }
+
+    @Override
+    public void onStateAutoComplete() {
+        cancelProgressTimer();
+    }
+
+    protected void startProgressTimer() {
+        cancelProgressTimer();
+        UPDATE_PROGRESS_TIMER = new Timer();
+        progressTimerTask = new ProgressTimerTask();
+        UPDATE_PROGRESS_TIMER.schedule(progressTimerTask, 0, 300);
+    }
+
+    protected void cancelProgressTimer() {
+        if (UPDATE_PROGRESS_TIMER != null) {
+            UPDATE_PROGRESS_TIMER.cancel();
+        }
+        if (progressTimerTask != null) {
+            progressTimerTask.cancel();
+        }
+    }
+
+    long getDuration() {
+        long duration = 0;
+        //TODO MediaPlayer 判空的问题
+//        if (KKMediaManager.instance().mediaPlayer == null) return duration;
+        try {
+            duration = KKMediaManager.getDuration();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+            return duration;
+        }
+        return duration;
+    }
+
+    long getCurrentPositionWhenPlaying() {
+        long position = 0;
+        //TODO 这块的判断应该根据MediaPlayer来
+        if (playStateManager.isPlaying() || playStateManager.isPause()) {
+            try {
+                position = KKMediaManager.getCurrentPosition();
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+                return position;
+            }
+        }
+        return position;
+    }
+
+    class ProgressTimerTask extends TimerTask {
+        @Override
+        public void run() {
+            if (playStateManager.isPlaying() || playStateManager.isPause()) {
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        long position = getCurrentPositionWhenPlaying();
+                        long duration = getDuration();
+                        int progress = (int) (position * 100 / (duration == 0 ? 1 : duration));
+                        updateProgressAndText(progress, position, duration);
+                    }
+                });
+            }
+        }
+    }
 }

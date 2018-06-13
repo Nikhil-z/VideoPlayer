@@ -5,7 +5,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,6 +21,11 @@ public class KKVideoStandardView extends KKVideoBaseView {
     private View loadingView;
     private TextView mReplayText;
     private View retryLayout;
+
+    @Override
+    protected UiController createUiController() {
+        return null;
+    }
 
     public KKVideoStandardView(Context context) {
         super(context);

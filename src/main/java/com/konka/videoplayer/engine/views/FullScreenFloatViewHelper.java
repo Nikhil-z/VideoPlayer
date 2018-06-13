@@ -34,7 +34,8 @@ public class FullScreenFloatViewHelper {
     }
 
     public void removeWindowFullScreen() {
-        mWindowManager.removeView(videoBaseView);
+        if (videoBaseView != null)
+            mWindowManager.removeView(videoBaseView);
     }
 
     public KKVideoBaseView getVideoBaseView() {
