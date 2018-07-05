@@ -2,11 +2,15 @@ package com.konka.videoplayer.engine.views;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
 
+import com.konka.videoplayer.R;
 import com.konka.videoplayer.engine.KKMediaManager;
 import com.konka.videoplayer.engine.PlayStateManager;
+import com.konka.videoplayer.engine.interfaces.IControlUi;
 import com.konka.videoplayer.engine.interfaces.PlayStateListener;
 
 import java.util.Timer;
@@ -16,12 +20,17 @@ import java.util.TimerTask;
  * Created by HwanJ.Choi on 2018-6-12.
  */
 
-public abstract class UiController extends RelativeLayout implements PlayStateListener {
+public abstract class UiController extends RelativeLayout implements PlayStateListener, View.OnClickListener {
 
     protected PlayStateManager playStateManager;
     protected static Timer UPDATE_PROGRESS_TIMER;
     protected ProgressTimerTask progressTimerTask;
     protected KKVideoBaseView kkVideoBaseView;
+    protected IControlUi mControlUi;
+
+    public void setControlUiListener(IControlUi listener) {
+        mControlUi = listener;
+    }
 
     public UiController(Context context) {
         this(context, null, 0);
@@ -42,21 +51,36 @@ public abstract class UiController extends RelativeLayout implements PlayStateLi
 
     public void attachToPlayView(KKVideoBaseView videoBaseView) {
         kkVideoBaseView = videoBaseView;
+        playStateManager = videoBaseView.getPlayStateManager();
         videoBaseView.getPlayStateManager().addPlayStateListener(this);
-
+        kkVideoBaseView.addView(this);
     }
 
     protected abstract int getLayout();
 
     public abstract void showBuffer(boolean show);
 
-    public abstract void showBottomPanel(boolean show);
-
     public abstract void updateProgressAndText(int progress, long position, long duration);
 
     public abstract void resetProgressAndTime();
 
+    public abstract void setTitleText(String title);
+
+    public abstract boolean onHandleKeyEvent(KeyEvent keyEvent);
+
     public void onBufferingProgress(int progress) {
+    }
+
+    @Override
+    public void onClick(View v) {
+        int i = v.getId();
+        if (i == R.id.start) {
+            if (mControlUi != null) {
+                mControlUi.startClick();
+                int currentState = playStateManager.getCurrentState();
+                Log.d("chj", "currenstate" + currentState);
+            }
+        }
     }
 
     @Override
@@ -72,16 +96,19 @@ public abstract class UiController extends RelativeLayout implements PlayStateLi
 
     @Override
     public void onStatePause() {
+        showBuffer(false);
         startProgressTimer();
     }
 
     @Override
     public void onStatePlaying() {
+        showBuffer(false);
         startProgressTimer();
     }
 
     @Override
     public void onStateError() {
+        showBuffer(false);
         cancelProgressTimer();
     }
 
@@ -91,7 +118,13 @@ public abstract class UiController extends RelativeLayout implements PlayStateLi
     }
 
     @Override
+    public void onStateBuffering() {
+        showBuffer(true);
+    }
+
+    @Override
     public void onStateAutoComplete() {
+        showBuffer(false);
         cancelProgressTimer();
     }
 

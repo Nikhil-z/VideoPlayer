@@ -3,8 +3,8 @@ package com.konka.videoplayer.engine.views;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.AttributeSet;
@@ -13,12 +13,9 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.SeekBar;
-import android.widget.TextView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.konka.videoplayer.R;
@@ -26,28 +23,25 @@ import com.konka.videoplayer.engine.KKMediaManager;
 import com.konka.videoplayer.engine.KKVideoPlayerViewManager;
 import com.konka.videoplayer.engine.PlayState;
 import com.konka.videoplayer.engine.PlayStateManager;
+import com.konka.videoplayer.engine.interfaces.IControlUi;
 import com.konka.videoplayer.engine.interfaces.PlayStateListenerAdapter;
 import com.konka.videoplayer.utils.JZUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.LinkedHashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Created by Nathen on 16/7/30.
  */
-public abstract class KKVideoBaseView extends FrameLayout implements View.OnClickListener, SeekBar.OnSeekBarChangeListener {
+public abstract class KKVideoBaseView extends RelativeLayout {
 
     public static final String TAG = "chjKKVideoBaseView";
     public static final int FULL_SCREEN_NORMAL_DELAY = 300;
-
     public static final int SCREEN_WINDOW_NORMAL = 0;
     public static final int SCREEN_WINDOW_LIST = 1;
     public static final int SCREEN_WINDOW_FULLSCREEN = 2;
 
     protected PlayStateManager playStateManager;
-    private FullScreenFloatViewHelper fullScreenFloatViewHelper;
 
     public PlayStateManager getPlayStateManager() {
         return playStateManager;
@@ -74,7 +68,7 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
                     try {
                         KKVideoBaseView player = KKVideoPlayerViewManager.getCurrentJzvd();
                         if (player != null && player.playStateManager.isPlaying()) {
-                            player.startButton.performClick();
+//                            player.startButton.performClick();
                         }
                     } catch (IllegalStateException e) {
                         e.printStackTrace();
@@ -86,15 +80,10 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
             }
         }
     };
-    private static Timer UPDATE_PROGRESS_TIMER;
     public int currentScreen = -1;
     public Object[] objects = null;
     public long seekToInAdvance = 0;
-    public ImageView startButton, fullScreenBtn;
-    public SeekBar progressBar;
-    public TextView currentTimeTextView, totalTimeTextView;
     public ViewGroup textureViewContainer;
-    public ViewGroup topContainer, bottomContainer;
     public int widthRatio = 0;
     public int heightRatio = 0;
     public Object[] dataSourceObjects;//这个参数原封不动直接通过JZMeidaManager传给JZMediaInterface。
@@ -104,10 +93,8 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     protected int mScreenWidth;
     protected int mScreenHeight;
     protected AudioManager mAudioManager;
-    protected ProgressTimerTask mProgressTimerTask;
-    protected boolean mTouchingProgressBar;
 
-    private UiController mUiController;
+    protected UiController uiController;
 
     protected abstract UiController createUiController();
 
@@ -141,22 +128,13 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     public static void startFullscreen(Context context, Class<? extends KKVideoBaseView> _class, Object[] dataSourceObjects, int defaultUrlMapIndex, Object... objects) {
         hideSupportActionBar(context);
         JZUtils.setRequestedOrientation(context, FULLSCREEN_ORIENTATION);
-        ViewGroup vp = (JZUtils.scanForActivity(context))//.getWindow().getDecorView();
-                .findViewById(Window.ID_ANDROID_CONTENT);
-        View old = vp.findViewById(R.id.jz_fullscreen_id);
-        if (old != null) {
-            vp.removeView(old);
-        }
         try {
             Constructor<? extends KKVideoBaseView> constructor = _class.getConstructor(Context.class);
-            final KKVideoBaseView KKVideoBaseView = constructor.newInstance(context);
-            KKVideoBaseView.setId(R.id.jz_fullscreen_id);
-            LayoutParams lp = new LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            vp.addView(KKVideoBaseView, lp);
-            KKVideoBaseView.setUp(dataSourceObjects, defaultUrlMapIndex, SCREEN_WINDOW_FULLSCREEN, objects);
+            final KKVideoBaseView videoBaseView = constructor.newInstance(context);
+            FullScreenFloatViewHelper.getInstance(context).addFullScreenView(videoBaseView);
+            videoBaseView.setUp(dataSourceObjects, defaultUrlMapIndex, SCREEN_WINDOW_FULLSCREEN, objects);
             CLICK_QUIT_FULLSCREEN_TIME = System.currentTimeMillis();
-//            jzVideoPlayer.startButton.performClick();
+            videoBaseView.startVideo();
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (Exception e) {
@@ -227,50 +205,47 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     }
 
     protected void init(Context context) {
+        setBackgroundColor(Color.BLACK);
         View.inflate(context, getLayoutId(), this);
-        startButton = findViewById(R.id.start);
-        progressBar = findViewById(R.id.bottom_seek_progress);
-        currentTimeTextView = findViewById(R.id.current);
-        totalTimeTextView = findViewById(R.id.total);
-        bottomContainer = findViewById(R.id.layout_bottom);
         textureViewContainer = findViewById(R.id.surface_container);
-        topContainer = findViewById(R.id.layout_top);
-        fullScreenBtn = findViewById(R.id.btn_fullscreen);
-
-        startButton.setOnClickListener(this);
-        progressBar.setOnSeekBarChangeListener(this);
-        ((CustomSeekBar) progressBar).setOnKeySeekBarChangeListener(new CustomSeekBar.OnKeySeekBarChangeListener() {
-            private boolean isTracking;
-
-            @Override
-            public void onKeyStartTrackingTouch() {
-                if (!isTracking) {
-                    cancelProgressTimer();
-                    isTracking = true;
-                    progressBar.setNextFocusRightId(R.id.bottom_seek_progress);
-                }
-            }
-
-            @Override
-            public void onKeyStopTrackingTouch() {
-                startProgressTimer();
-                long time = (long) (progressBar.getProgress() * getDuration() * 1.0f / 100);
-                long totalDuration = KKMediaManager.getDuration() - 1000;
-                KKMediaManager.seekTo(Math.min(totalDuration, time));
-                isTracking = false;
-                progressBar.setNextFocusRightId(View.NO_ID);
-            }
-        });
-        fullScreenBtn.setOnClickListener(this);
-
         mScreenWidth = getContext().getResources().getDisplayMetrics().widthPixels;
         mScreenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
         mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
         playStateManager = new PlayStateManager();
         playStateManager.addPlayStateListener(playStateListenerAdapter);
-        fullScreenFloatViewHelper = new FullScreenFloatViewHelper(context);
-//        mUiController = createUiController();
-//        mUiController.attachToPlayView(this);
+        uiController = createUiController();
+        uiController.attachToPlayView(this);
+        uiController.setControlUiListener(new IControlUi() {
+            @Override
+            public void startClick() {
+                Log.i(TAG, "onClick start [" + this.hashCode() + "] ");
+                if (dataSourceObjects == null || JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex) == null) {
+                    Toast.makeText(getContext(), getResources().getString(R.string.no_url), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (playStateManager.isNormal() || playStateManager.isAutoComplete() || playStateManager.isError()) {
+                    startVideo();
+                } else if (playStateManager.isPlaying()) {
+                    Log.d(TAG, "pauseVideo [" + this.hashCode() + "] ");
+                    KKMediaManager.pause();
+                    playStateManager.setCurrentState(PlayState.CURRENT_STATE_PAUSE);
+                } else if (playStateManager.isPause()) {
+                    KKMediaManager.start();
+                    playStateManager.setCurrentState(PlayState.CURRENT_STATE_PLAYING);
+                }
+            }
+
+            @Override
+            public void fullScreenClick() {
+                if (currentScreen == SCREEN_WINDOW_FULLSCREEN)
+                    backPress();
+                else {
+                    if (playStateManager.isPlaying() || playStateManager.isPause()) {
+                        startWindowFullscreen();
+                    }
+                }
+            }
+        });
         try {
             if (isCurrentPlay()) {
                 NORMAL_ORIENTATION = ((AppCompatActivity) context).getRequestedOrientation();
@@ -314,39 +289,11 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         playStateManager.resetState();
     }
 
-    @Override
-    public void onClick(View v) {
-        int i = v.getId();
-        if (i == R.id.start) {
-            Log.i(TAG, "onClick start [" + this.hashCode() + "] ");
-            if (dataSourceObjects == null || JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex) == null) {
-                Toast.makeText(getContext(), getResources().getString(R.string.no_url), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (playStateManager.isNomal() || playStateManager.isAutoComplete()) {
-                startVideo();
-            } else if (playStateManager.isPlaying()) {
-                Log.d(TAG, "pauseVideo [" + this.hashCode() + "] ");
-                KKMediaManager.pause();
-                playStateManager.setCurrentState(PlayState.CURRENT_STATE_PAUSE);
-            } else if (playStateManager.isPause()) {
-                KKMediaManager.start();
-                playStateManager.setCurrentState(PlayState.CURRENT_STATE_PLAYING);
-            }
-        } else if (i == R.id.btn_fullscreen) {
-            if (currentScreen == SCREEN_WINDOW_FULLSCREEN)
-                backPress();
-            else {
-                if (playStateManager.isPlaying() || playStateManager.isPause()) {
-                    startWindowFullscreen();
-                }
-            }
-        }
-    }
-
     public void startVideo() {
-        showBufferLoading(true);
-        startButton.setVisibility(GONE);
+        View start = findViewById(R.id.start);
+        if (start != null)
+            start.setVisibility(GONE);
+        uiController.showBuffer(true);
         KKVideoPlayerViewManager.completeAll();//释放所有的textureview
         Log.d(TAG, "startVideo [" + this.hashCode() + "] ");
         KKMediaManager.instance().initTextureView(getContext());//移除之前的textureview，重新创建一个
@@ -364,13 +311,7 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
     private PlayStateListenerAdapter playStateListenerAdapter = new PlayStateListenerAdapter() {
 
         @Override
-        public void onStateReset() {
-            cancelProgressTimer();
-        }
-
-        @Override
         public void onStatePrepared() {
-            resetProgressAndTime();
             if (seekToInAdvance != 0) {
                 KKMediaManager.seekTo(seekToInAdvance);
                 seekToInAdvance = 0;
@@ -380,32 +321,17 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
                     KKMediaManager.seekTo(position);
                 }
             }
-            startProgressTimer();
-        }
-
-        @Override
-        public void onStatePause() {
-            startProgressTimer();
         }
 
         @Override
         public void onStateError() {
-            cancelProgressTimer();
             if (isCurrentPlay()) {
                 KKMediaManager.instance().releaseMediaPlayer();
             }
         }
 
         @Override
-        public void onStatePlaying() {
-            startProgressTimer();
-        }
-
-        @Override
         public void onStateAutoComplete() {
-            cancelProgressTimer();
-            progressBar.setProgress(100);
-            currentTimeTextView.setText(totalTimeTextView.getText());
             if (currentScreen == SCREEN_WINDOW_FULLSCREEN) {
                 backPress();
             }
@@ -413,23 +339,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
             JZUtils.saveProgress(getContext(), JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex), 0);
         }
     };
-
-    public void onInfo(int what, int extra) {
-        Log.d(TAG, "onInfo what - " + what + " extra - " + extra);
-        switch (what) {
-            case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
-                showBufferLoading(false);
-                break;
-            case MediaPlayer.MEDIA_INFO_BUFFERING_START:
-                showBufferLoading(true);
-                break;
-            case MediaPlayer.MEDIA_INFO_BUFFERING_END:
-                showBufferLoading(false);
-                break;
-        }
-    }
-
-    protected abstract void showBufferLoading(boolean show);
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -450,19 +359,37 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         }
     }
 
+    private long lastBackKeyClickTime;
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        Log.d("chjdispatchKeyEvent", "[" + this.hashCode() + "]");
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             switch (event.getKeyCode()) {
                 case KeyEvent.KEYCODE_BACK:
                     Log.d("chj", "back ");
                     if (currentScreen == SCREEN_WINDOW_FULLSCREEN) {
+//                        long current = System.currentTimeMillis();
+//                        if (current - lastBackKeyClickTime > 2500) {
+//                            Toast.makeText(getContext(), "再按一次返回键退出", Toast.LENGTH_SHORT).show();
+//                        } else {
+//                            backPress();
+//                        }
+//                        lastBackKeyClickTime = current;
                         backPress();
+                        return true;
                     }
-                    break;
             }
         }
-        return super.dispatchKeyEvent(event);
+        boolean uiControlConsume = false;
+        if (uiController != null) {
+            uiControlConsume = uiController.onHandleKeyEvent(event);
+        }
+        if (uiControlConsume) {
+            return true;
+        } else {
+            return super.dispatchKeyEvent(event);
+        }
     }
 
     public void onCompletion() {
@@ -471,7 +398,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
             long position = getCurrentPositionWhenPlaying();
             JZUtils.saveProgress(getContext(), JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex), position);
         }
-        cancelProgressTimer();
         playStateManager.resetState();
         textureViewContainer.removeView(KKMediaManager.textureView);
         KKMediaManager.instance().currentVideoWidth = 0;
@@ -497,35 +423,23 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         Gravity.CENTER);
-//        LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,);
-//        layoutParams.addRule(CENTER_IN_PARENT);
         textureViewContainer.addView(KKMediaManager.textureView, layoutParams);
     }
 
     void clearFullscreenLayout() {
-        ViewGroup vp = (JZUtils.scanForActivity(getContext()))//.getWindow().getDecorView();
-                .findViewById(Window.ID_ANDROID_CONTENT);
-        View oldF = vp.findViewById(R.id.jz_fullscreen_id);
-        View oldT = vp.findViewById(R.id.jz_tiny_id);
-        if (oldF != null) {
-            vp.removeView(oldF);
-        }
-        if (oldT != null) {
-            vp.removeView(oldT);
-        }
+        FullScreenFloatViewHelper.getInstance(getContext()).removeWindowFullScreen();
         showSupportActionBar(getContext());
     }
 
     void clearFloatScreen() {
         JZUtils.setRequestedOrientation(getContext(), NORMAL_ORIENTATION);
         showSupportActionBar(getContext());
-
-        KKVideoPlayerViewManager.setSecondFloor(null);
-        KKVideoBaseView videoBaseView = fullScreenFloatViewHelper.getVideoBaseView();
+        KKVideoBaseView videoBaseView = FullScreenFloatViewHelper.getInstance(getContext()).getVideoBaseView();
         if (videoBaseView != null) {
             videoBaseView.textureViewContainer.removeView(KKMediaManager.textureView);
         }
-        fullScreenFloatViewHelper.removeWindowFullScreen();
+        FullScreenFloatViewHelper.getInstance(getContext()).removeWindowFullScreen();
+        KKVideoPlayerViewManager.setSecondFloor(null);
     }
 
     public void onVideoSizeChanged() {
@@ -538,41 +452,9 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         }
     }
 
-    void startProgressTimer() {
-        Log.i(TAG, "startProgressTimer: " + " [" + this.hashCode() + "] ");
-        cancelProgressTimer();
-        UPDATE_PROGRESS_TIMER = new Timer();
-        mProgressTimerTask = new ProgressTimerTask();
-        UPDATE_PROGRESS_TIMER.schedule(mProgressTimerTask, 0, 300);
-    }
-
-    void cancelProgressTimer() {
-        if (UPDATE_PROGRESS_TIMER != null) {
-            UPDATE_PROGRESS_TIMER.cancel();
-        }
-        if (mProgressTimerTask != null) {
-            mProgressTimerTask.cancel();
-        }
-    }
-
-    protected void setProgressAndText(int progress, long position, long duration) {
-//        Log.d(TAG, "updateProgressAndText: progress=" + progress + " position=" + position + " duration=" + duration);
-        if (!mTouchingProgressBar) {
-            if (progress != 0) progressBar.setProgress(progress);
-        }
-        if (position != 0) currentTimeTextView.setText(JZUtils.stringForTime(position));
-        totalTimeTextView.setText(JZUtils.stringForTime(duration));
-    }
-
     public void setBufferProgress(int bufferProgress) {
-        if (bufferProgress != 0) progressBar.setSecondaryProgress(bufferProgress);
-    }
-
-    protected void resetProgressAndTime() {
-        progressBar.setProgress(0);
-        progressBar.setSecondaryProgress(0);
-        currentTimeTextView.setText(JZUtils.stringForTime(0));
-        totalTimeTextView.setText(JZUtils.stringForTime(0));
+        if (uiController != null)
+            uiController.onBufferingProgress(bufferProgress);
     }
 
     public long getCurrentPositionWhenPlaying() {
@@ -589,39 +471,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         return position;
     }
 
-    long getDuration() {
-        long duration = 0;
-        //TODO MediaPlayer 判空的问题
-//        if (KKMediaManager.instance().mediaPlayer == null) return duration;
-        try {
-            duration = KKMediaManager.getDuration();
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return duration;
-        }
-        return duration;
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-        Log.d("chj", "onStartTrackingTouch");
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-        Log.d("chj", "onStopTrackingTouch");
-    }
-
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if (fromUser) {
-            Log.d("chj", "onProgressChanged");
-            //设置这个progres对应的时间，给textview
-            long duration = getDuration();
-            currentTimeTextView.setText(JZUtils.stringForTime(progress * duration / 100));
-        }
-    }
-
     public void startWindowFullscreen() {
         Log.i(TAG, "startWindowFullscreen " + " [" + this.hashCode() + "] ");
         hideSupportActionBar(getContext());
@@ -629,7 +478,7 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         try {
             Constructor<? extends KKVideoBaseView> constructor = getClass().getConstructor(Context.class);
             KKVideoBaseView videoBaseView = constructor.newInstance(getContext());
-            fullScreenFloatViewHelper.addFullScreenView(videoBaseView);
+            FullScreenFloatViewHelper.getInstance(getContext()).addFullScreenView(videoBaseView);
             videoBaseView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN);
             videoBaseView.setUp(dataSourceObjects, currentUrlMapIndex, SCREEN_WINDOW_FULLSCREEN, objects);
@@ -666,23 +515,6 @@ public abstract class KKVideoBaseView extends FrameLayout implements View.OnClic
         //2.在本jzvd上播放,从全屏切回小屏
         playStateManager.setCurrentState(secondFloorState);
         addTextureView();//把textrueview添加进来就可以播放了
-    }
-
-    public class ProgressTimerTask extends TimerTask {
-        @Override
-        public void run() {
-            if (playStateManager.isPlaying() || playStateManager.isPause()) {
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        long position = getCurrentPositionWhenPlaying();
-                        long duration = getDuration();
-                        int progress = (int) (position * 100 / (duration == 0 ? 1 : duration));
-                        setProgressAndText(progress, position, duration);
-                    }
-                });
-            }
-        }
     }
 
     public static void clearSavedProgress(Context context, String url) {

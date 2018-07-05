@@ -8,9 +8,17 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_alignParentBottom="true"
-        android:background="@drawable/jz_bottom_bg"
+        android:background="@drawable/bottom_control_bar_bg"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingEnd="28dp"
+        android:paddingStart="28dp">
+
+        <ImageView
+            android:id="@+id/iv_bottom_start"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/play" />
 
         <TextView
             android:id="@+id/current"
@@ -44,24 +52,6 @@
             android:text="00:00"
             android:textColor="#ffffff" />
 
-        <TextView
-            android:id="@+id/clarity"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:paddingLeft="20dp"
-            android:text="clarity"
-            android:textAlignment="center"
-            android:textColor="#ffffff" />
-
-        <ImageView
-            android:id="@+id/btn_fullscreen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/track_bg"
-            android:focusable="true"
-            android:src="@drawable/jz_enlarge" />
-
     </LinearLayout>
 
     <ProgressBar
@@ -76,50 +66,29 @@
     <RelativeLayout
         android:id="@+id/layout_top"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:background="@drawable/jz_title_bg"
-        android:gravity="center_vertical">
-
-        <ImageView
-            android:id="@+id/back"
-            android:layout_width="23dp"
-            android:layout_height="match_parent"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:background="@drawable/track_bg"
-            android:focusable="true"
-            android:paddingLeft="12dp"
-            android:paddingStart="12dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/jz_click_back_selector" />
+        android:paddingEnd="28dp">
 
         <TextView
             android:id="@+id/title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_marginEnd="12dp"
-            android:layout_marginLeft="12dp"
-            android:layout_marginRight="12dp"
-            android:layout_marginStart="12dp"
-            android:layout_toEndOf="@+id/back"
-            android:layout_toRightOf="@+id/back"
-            android:ellipsize="end"
-            android:maxLines="2"
+            android:layout_width="450dp"
+            android:layout_height="55dp"
+            android:background="@drawable/title_bg"
+            android:gravity="center_vertical"
+            android:paddingStart="28dp"
             android:text="@string/app_name"
-            android:textColor="#ffffff"
-            android:textSize="18sp" />
+            android:textColor="#ede8de"
+            android:textSize="24dp" />
 
     </RelativeLayout>
 
     <ProgressBar
         android:id="@+id/loading"
-        android:layout_width="@dimen/jz_start_button_w_h_normal"
-        android:layout_height="@dimen/jz_start_button_w_h_normal"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:indeterminateDrawable="@drawable/jz_loading"
@@ -135,11 +104,9 @@
 
         <ImageView
             android:id="@+id/start"
-            android:layout_width="@dimen/jz_start_button_w_h_normal"
-            android:layout_height="@dimen/jz_start_button_w_h_normal"
-            android:background="@drawable/track_bg"
-            android:focusable="true"
-            android:src="@drawable/jz_click_play_selector" />
+            android:layout_width="@dimen/width_player_center_play_btn"
+            android:layout_height="@dimen/height_player_center_play_btn"
+            android:background="@drawable/play_big" />
     </LinearLayout>
 
     <TextView

@@ -12,6 +12,8 @@ public interface PlayStateListener {
 
     void onStatePause();
 
+    void onStateBuffering();
+
     void onStateError(int what, int extra);
 
     void onStateError();

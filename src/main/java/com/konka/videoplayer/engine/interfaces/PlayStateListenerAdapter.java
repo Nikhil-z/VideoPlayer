@@ -23,6 +23,11 @@ public class PlayStateListenerAdapter implements PlayStateListener {
     }
 
     @Override
+    public void onStateBuffering() {
+
+    }
+
+    @Override
     public void onStateError(int what, int extra) {
 
     }

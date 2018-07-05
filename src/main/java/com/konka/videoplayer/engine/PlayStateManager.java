@@ -60,6 +60,12 @@ public class PlayStateManager implements PlayStateListener {
     }
 
     @Override
+    public void onStateBuffering() {
+        mCurrentState = PlayState.CURRENT_STATE_BUFFERING;
+        onStateChange(mCurrentState);
+    }
+
+    @Override
     public void onStateError(int what, int extra) {
         Log.e(TAG, "onError " + what + " - " + extra + " [" + this.hashCode() + "] ");
         if (what != 38 && extra != -38 && what != -38 && extra != 38 && extra != -19) {
@@ -111,6 +117,10 @@ public class PlayStateManager implements PlayStateListener {
                     break;
                 case PlayState.CURRENT_STATE_ERROR:
                     listener.onStateError();
+                    break;
+                case PlayState.CURRENT_STATE_BUFFERING:
+                    listener.onStateBuffering();
+                    break;
             }
         }
     }
@@ -127,7 +137,7 @@ public class PlayStateManager implements PlayStateListener {
         return mCurrentState == PlayState.CURRENT_STATE_ERROR;
     }
 
-    public boolean isNomal() {
+    public boolean isNormal() {
         return mCurrentState == PlayState.CURRENT_STATE_NORMAL;
     }
 

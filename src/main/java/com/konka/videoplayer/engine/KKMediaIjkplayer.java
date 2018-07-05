@@ -1,6 +1,7 @@
 package com.konka.videoplayer.engine;
 
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.Surface;
 
@@ -177,7 +178,17 @@ public class KKMediaIjkplayer extends KKMediaInterface implements IMediaPlayer.O
 //                            KKVideoPlayerViewManager.getCurrentJzvd().getPlayStateManager().onStatePrepared();
 //                        }
 //                    }
-                    KKVideoPlayerViewManager.getCurrentJzvd().onInfo(what, extra);
+                    switch (what) {
+                        case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
+                            Log.d("chj", "MEDIA_INFO_VIDEO_RENDERING_START");
+                            break;
+                        case MediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            KKVideoPlayerViewManager.getCurrentJzvd().getPlayStateManager().onStateBuffering();
+                            break;
+                        case MediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            KKVideoPlayerViewManager.getCurrentJzvd().getPlayStateManager().onStatePlaying();
+                            break;
+                    }
                 }
             }
         });

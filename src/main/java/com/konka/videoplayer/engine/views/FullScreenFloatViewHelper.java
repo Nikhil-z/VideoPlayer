@@ -16,6 +16,13 @@ public class FullScreenFloatViewHelper {
     private WindowManager.LayoutParams mLayoutParams;
 
     private KKVideoBaseView videoBaseView;
+    private static FullScreenFloatViewHelper instance;
+
+    public static FullScreenFloatViewHelper getInstance(Context context) {
+        if (instance == null)
+            instance = new FullScreenFloatViewHelper(context);
+        return instance;
+    }
 
     public FullScreenFloatViewHelper(Context context) {
         mContext = context;
@@ -23,7 +30,7 @@ public class FullScreenFloatViewHelper {
         mLayoutParams = new WindowManager.LayoutParams();
         mLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
         mLayoutParams.height = WindowManager.LayoutParams.MATCH_PARENT;
-//        mLayoutParams.flags = WindowManager.LayoutParams.;
+        mLayoutParams.flags = WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
     }
 
     public void addFullScreenView(KKVideoBaseView view) {
